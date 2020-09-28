@@ -1,0 +1,126 @@
+-- Emploeados contratados antes que X empleado.
+SELECT LAST_NAME, FIRST_NAME, HIRE_DATE
+    FROM EMPLOYEES
+    WHERE HIRE_DATE < 
+        (SELECT HIRE_DATE FROM EMPLOYEES WHERE LAST_NAME = 'Vargas')
+    ORDER BY HIRE_DATE     ;
+
+SELECT * FROM EMPLOYEES ORDER BY LAST_NAME;
+SELECT HIRE_DATE FROM EMPLOYEES WHERE LAST_NAME = 'Cambrault';
+
+-- Qué departamentos tienen un salario más bajo que sea mayor que
+-- el salario más bajo del departamento 50.
+SELECT DEPARTMENT_ID, MIN(SALARY) MIN_SALARY
+    FROM EMPLOYEES
+    GROUP BY DEPARTMENT_ID
+    HAVING 
+        MIN(SALARY) >
+        (SELECT MIN(SALARY) FROM EMPLOYEES WHERE DEPARTMENT_ID = 50)
+    ORDER BY MIN(SALARY)    ;
+    
+-- Qué departments tienen salario promedio más bajo
+-- que el promedio general.
+SELECT DEPARTMENT_ID, AVG(SALARY) AVG_SALARY
+    FROM EMPLOYEES
+    GROUP BY DEPARTMENT_ID
+    HAVING AVG(SALARY) < (SELECT AVG(SALARY) FROM EMPLOYEES);
+    
+SELECT E.DEPARTMENT_ID, D.DEPARTMENT_NAME, AVG(SALARY) AVG_SALARY
+    FROM EMPLOYEES E JOIN DEPARTMENTS D ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+    GROUP BY E.DEPARTMENT_ID, D.DEPARTMENT_NAME
+    HAVING AVG(SALARY) < (SELECT AVG(SALARY) FROM EMPLOYEES)
+    ORDER BY E.DEPARTMENT_ID;
+
+SELECT E.DEPARTMENT_ID, D.DEPARTMENT_NAME, AVG(SALARY) AVG_SALARY
+    FROM EMPLOYEES E, DEPARTMENTS D 
+    WHERE E.DEPARTMENT_ID = D.DEPARTMENT_ID
+    GROUP BY E.DEPARTMENT_ID, D.DEPARTMENT_NAME
+    HAVING AVG(SALARY) < (SELECT AVG(SALARY) FROM EMPLOYEES)
+    ORDER BY E.DEPARTMENT_ID;
+
+-- Empleados contratados el mismo año que un empleado del departamento 90.
+SELECT FIRST_NAME, LAST_NAME, HIRE_DATE
+    FROM EMPLOYEES
+    WHERE 
+        TO_CHAR(HIRE_DATE, 'YYYY') IN
+        (SELECT TO_CHAR(HIRE_DATE, 'YYYY') 
+            FROM EMPLOYEES WHERE DEPARTMENT_ID = 90);
+            
+SELECT FIRST_NAME, LAST_NAME, HIRE_DATE
+    FROM EMPLOYEES
+    WHERE 
+        EXTRACT(YEAR FROM HIRE_DATE) IN
+        (SELECT EXTRACT(YEAR FROM HIRE_DATE) 
+            FROM EMPLOYEES WHERE DEPARTMENT_ID = 90);
+
+-- Empleados cuyo año de contratación sea menor que al menos
+-- un año de contratación de los empleados del dpto. 90.
+SELECT LAST_NAME,FIRST_NAME, HIRE_DATE
+    FROM EMPLOYEES
+    WHERE EXTRACT(YEAR FROM HIRE_DATE) < ANY
+        (SELECT EXTRACT(YEAR FROM HIRE_DATE)
+            FROM EMPLOYEES
+            WHERE DEPARTMENT_ID = 90);
+
+SELECT LAST_NAME,FIRST_NAME, HIRE_DATE
+    FROM EMPLOYEES
+    WHERE EXTRACT(YEAR FROM HIRE_DATE) > ALL
+        (SELECT EXTRACT(YEAR FROM HIRE_DATE)
+            FROM EMPLOYEES
+            WHERE DEPARTMENT_ID = 90);
+
+-- Cuál es el empleado que gana más y cuál es el que 
+-- gana menos. EN UNA SOLA SENTENCIA SELECT!
+SELECT LAST_NAME, FIRST_NAME, SALARY, D.DEPARTMENT_NAME, J.JOB_TITLE
+    FROM 
+        EMPLOYEES E
+            JOIN 
+        DEPARTMENTS D
+                ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+            JOIN
+        JOBS J
+                ON E.JOB_ID = J.JOB_ID
+    WHERE 
+        SALARY = (SELECT MIN(SALARY) FROM EMPLOYEES) OR
+        SALARY = (SELECT MAX(SALARY) FROM EMPLOYEES);
+        
+-- Cuáles son los departments que no tienen empleados con el
+-- job_title de 'Stock Clerk' ni 'President'.
+SELECT DEPARTMENT_ID, DEPARTMENT_NAME 
+    FROM DEPARTMENTS
+    WHERE DEPARTMENT_ID NOT IN 
+        (SELECT DISTINCT DEPARTMENT_ID 
+            FROM EMPLOYEES 
+            WHERE EMPLOYEE_ID IN(
+                SELECT EMPLOYEE_ID FROM EMPLOYEES WHERE JOB_ID IN
+                    (SELECT JOB_ID 
+                        FROM JOBS 
+                        WHERE JOB_TITLE IN ('President', 'Stock Clerk'))));
+
+SELECT DEPARTMENT_ID, DEPARTMENT_NAME
+    FROM DEPARTMENTS
+    WHERE DEPARTMENT_ID NOT IN
+        (SELECT DISTINCT DEPARTMENT_ID
+            FROM EMPLOYEES E JOIN JOBS J ON E.JOB_ID = J.JOB_ID
+            WHERE J.JOB_TITLE IN ('President', 'Stock Clerk'));
+            
+SELECT DEPARTMENT_ID, DEPARTMENT_NAME
+    FROM DEPARTMENTS D
+    WHERE NOT EXISTS
+        (SELECT *
+            FROM EMPLOYEES E JOIN JOBS J ON E.JOB_ID = J.JOB_ID
+            WHERE 
+                J.JOB_TITLE IN ('President', 'Stock Clerk') AND
+                D.DEPARTMENT_ID = E.DEPARTMENT_ID);
+                
+-- De quién es el salario mayor que el salario medio de su departamento.
+SELECT E1.FIRST_NAME, E1.LAST_NAME, E1.SALARY
+    FROM EMPLOYEES E1
+    WHERE 
+        E1.SALARY > 
+        (SELECT AVG(SALARY) 
+            FROM EMPLOYEES E2 
+            WHERE E1.DEPARTMENT_ID = E2.DEPARTMENT_ID);
+
+
+
